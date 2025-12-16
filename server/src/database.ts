@@ -119,6 +119,45 @@ class Database {
         });
     }
 
+    async removeActiveUserFromRoom(userId: string, roomName: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.db.run(
+                "DELETE FROM active_users WHERE id = ? AND room = ?",
+                [userId, roomName],
+                function (err) {
+                    if (err) reject(err);
+                    else resolve();
+                }
+            );
+        });
+    }
+
+    async getUserRooms(userId: string): Promise<string[]> {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                "SELECT DISTINCT room FROM active_users WHERE id = ?",
+                [userId],
+                (err, rows: any[]) => {
+                    if (err) reject(err);
+                    else resolve(rows.map(row => row.room));
+                }
+            );
+        });
+    }
+
+    async isUserInRoom(userId: string, roomName: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            this.db.get(
+                "SELECT 1 FROM active_users WHERE id = ? AND room = ?",
+                [userId, roomName],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(!!row);
+                }
+            );
+        });
+    }
+
     async removeActiveUser(userId: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.db.run(
@@ -171,6 +210,32 @@ class Database {
                     else resolve();
                 }
             );
+        });
+    }
+
+    async getRoomCount(): Promise<number> {
+        return new Promise((resolve, reject) => {
+            this.db.get(
+                "SELECT COUNT(*) as count FROM rooms",
+                (err, row: any) => {
+                    if (err) reject(err);
+                    else resolve(row.count);
+                }
+            );
+        });
+    }
+
+    async getActiveUserCount(roomName?: string): Promise<number> {
+        return new Promise((resolve, reject) => {
+            const query = roomName 
+                ? "SELECT COUNT(*) as count FROM active_users WHERE room = ?"
+                : "SELECT COUNT(*) as count FROM active_users";
+            const params = roomName ? [roomName] : [];
+
+            this.db.get(query, params, (err, row: any) => {
+                if (err) reject(err);
+                else resolve(row.count);
+            });
         });
     }
 
