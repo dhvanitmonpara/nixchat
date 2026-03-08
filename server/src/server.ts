@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 import Database from "./database.js";
 import { sanitizeString, validateRoomName, validateUsername, validateMessage, RateLimiter } from "./utils.js";
 
-const result = dotenv.config({ path: "./.env" });
+const result = dotenv.config({quiet: true});
 if (result.error) {
     console.error("⚠️  Error loading .env file:", result.error);
 }

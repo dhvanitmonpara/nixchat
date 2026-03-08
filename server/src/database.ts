@@ -2,15 +2,13 @@ import { Database as SQLite } from "bun:sqlite";
 
 export default class Database {
     private db: SQLite;
-    
+
     constructor() {
         this.db = new SQLite("chat.db");
         this.initTables();
     }
-    
+
     private initTables() {
-        this.db.run("DELETE FROM active_users");
-        
         this.db.run(`
             CREATE TABLE IF NOT EXISTS rooms (
                 name TEXT PRIMARY KEY,
@@ -55,6 +53,7 @@ export default class Database {
                 ON active_users(room)
         `);
 
+        this.db.run("DELETE FROM active_users");
     }
 
     createRoom(roomName: string) {
