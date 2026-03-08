@@ -37,7 +37,7 @@ app.get("/health", async (req, res) => {
     try {
         const roomCount = await db.getRoomCount();
         const userCount = await db.getActiveUserCount();
-        
+
         res.json({
             status: "healthy",
             timestamp: new Date().toISOString(),
@@ -58,18 +58,18 @@ app.get("/health", async (req, res) => {
 app.get("/api/rooms/:roomName/stats", async (req, res) => {
     try {
         const { roomName } = req.params;
-        
+
         if (!validateRoomName(roomName)) {
             return res.status(400).json({ error: "Invalid room name" });
         }
-        
+
         const userCount = await db.getActiveUserCount(roomName);
         const roomData = await db.getRoomData(roomName);
-        
+
         if (!roomData) {
             return res.status(404).json({ error: "Room not found" });
         }
-        
+
         res.json({
             roomName,
             activeUsers: userCount,
@@ -96,7 +96,7 @@ io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
     // Handle message event
-    socket.on("message", async ({ room, message, sender, username }) => {
+    socket.on("message", ({ room, message, sender, username }) => {
         try {
             // Rate limiting
             if (!messageRateLimiter.isAllowed(socket.id)) {
@@ -129,7 +129,7 @@ io.on("connection", (socket) => {
             }
 
             // Check if user is in the room
-            const isInRoom = await db.isUserInRoom(socket.id, room);
+            const isInRoom = db.isUserInRoom(socket.id, room);
             if (!isInRoom) {
                 socket.emit("error", { message: "You are not in this room" });
                 return;
@@ -144,7 +144,7 @@ io.on("connection", (socket) => {
                 timestamp: Date.now(),
             };
 
-            await db.addMessage(messageData);
+            db.addMessage(messageData);
             io.to(room).emit("receive-message", messageData);
         } catch (error) {
             console.error("⚠️  Error saving message:", error);
@@ -191,21 +191,21 @@ io.on("connection", (socket) => {
 
             // Join the socket room
             socket.join(roomName);
-            
+
             // Create room if it doesn't exist
             await db.createRoom(roomName);
-            
+
             // Add user to active users in the room
             await db.addActiveUser({ id: socket.id, username: userName, room: roomName });
 
             // Get updated room data and emit to clients
             const roomData = await db.getRoomData(roomName);
-            
+
             // Notify all users in the room about the new user
-            io.to(roomName).emit("joined-room", { 
-                room: roomData, 
-                username: userName, 
-                socketId: socket.id 
+            io.to(roomName).emit("joined-room", {
+                room: roomData,
+                username: userName,
+                socketId: socket.id
             });
 
             // Send room history to the joining user
@@ -244,18 +244,18 @@ io.on("connection", (socket) => {
 
             // Get updated room data
             const roomData = await db.getRoomData(roomName);
-            
+
             // Notify other users in the room about the user leaving
-            io.to(roomName).emit("left-room", { 
-                room: roomData, 
+            io.to(roomName).emit("left-room", {
+                room: roomData,
                 username: username || "Unknown user",
                 socketId: socket.id
             });
 
             // Confirm to the leaving user
-            socket.emit("left-room-confirm", { 
-                room: null, 
-                username: username || "Unknown user" 
+            socket.emit("left-room-confirm", {
+                room: null,
+                username: username || "Unknown user"
             });
 
             // Clean up empty rooms
@@ -274,32 +274,32 @@ io.on("connection", (socket) => {
             console.log(`User disconnected: ${socket.id}`);
 
             // Get all rooms the user was in before removing them
-            const userRooms = await db.getUserRooms(socket.id);
+            const userRooms = db.getUserRooms(socket.id);
 
             // Remove user from all rooms
-            await db.removeActiveUser(socket.id);
+            db.removeActiveUser(socket.id);
 
             // Notify all rooms about the user disconnection
             for (const roomName of userRooms) {
-                const roomData = await db.getRoomData(roomName);
-                io.to(roomName).emit("user-disconnected", { 
-                    room: roomData, 
-                    socketId: socket.id 
+                const roomData = db.getRoomData(roomName);
+                io.to(roomName).emit("user-disconnected", {
+                    room: roomData,
+                    socketId: socket.id
                 });
             }
 
             // Clean up empty rooms
-            await db.removeEmptyRooms();
+            db.removeEmptyRooms();
         } catch (error) {
             console.error("⚠️  Error handling disconnect:", error);
         }
     });
 
     // Handle get room list
-    socket.on("get-rooms", async () => {
+    socket.on("get-rooms", () => {
         try {
             // This could be extended to get public rooms or user's rooms
-            const userRooms = await db.getUserRooms(socket.id);
+            const userRooms = db.getUserRooms(socket.id);
             socket.emit("rooms-list", { rooms: userRooms });
         } catch (error) {
             console.error("⚠️  Error getting rooms:", error);
