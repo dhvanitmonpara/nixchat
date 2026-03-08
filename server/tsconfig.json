@@ -1,14 +1,19 @@
 {
 	"compilerOptions": {
-		"target": "ES2020",
+		"target": "ES2022",
 		"module": "ESNext",
 		"moduleResolution": "Node",
 		"outDir": "dist",
 		"rootDir": "./",
 		"baseUrl": "./src",
-    "paths": {
-      "@/*": ["*"]
-    },
+		"paths": {
+			"@/*": [
+				"*"
+			]
+		},
+		"types": [
+			"bun-types"
+		],
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
 		"declaration": false,
@@ -19,6 +24,7 @@
 	"include": [
 		"src/**/*",
 		"docs/**/*",
-		"scripts/**/*"
+		"scripts/**/*",
+		"build.js"
 	]
 }
